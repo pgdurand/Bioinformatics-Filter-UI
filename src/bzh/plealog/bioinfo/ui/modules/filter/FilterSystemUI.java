@@ -16,7 +16,10 @@
  */
 package bzh.plealog.bioinfo.ui.modules.filter;
 
+import com.plealog.genericapp.api.EZEnvironment;
+
 import bzh.plealog.bioinfo.ui.filter.BFilterTableModel;
+import bzh.plealog.bioinfo.ui.filter.resources.FilterMessages;
 
 /**
  * This is the SROutput filtering system. 
@@ -38,7 +41,7 @@ public class FilterSystemUI {
 	public static final void initializeSystem(){
 		if (_bInited)
 			return;
-
+		EZEnvironment.addResourceLocator(FilterMessages.class);
 		FilterSystemUI.setFilterCentralRepository(new BFilterTableModel());
 
 		_bInited = true;

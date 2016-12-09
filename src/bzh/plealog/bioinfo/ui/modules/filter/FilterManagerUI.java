@@ -112,8 +112,6 @@ public class FilterManagerUI {
 
 		FilterSystemUI.setFilterCentralRepositoryPath(EZFileUtils.terminatePath(prepareEnvironment(".")));
 
-		EZEnvironment.addResourceLocator(FilterMessages.class);
-
 		//Add a listener to application startup cycle (see below)
 		EZEnvironment.setUIStarterListener(new MyStarterListener());
 

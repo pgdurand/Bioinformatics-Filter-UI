@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import javax.swing.table.AbstractTableModel;
 
 import bzh.plealog.bioinfo.api.filter.BFilter;
-import bzh.plealog.bioinfo.ui.filter.resources.FilterMessages;
 
 /**
  * This class handles the data model of BFilterTable.
@@ -30,28 +29,24 @@ import bzh.plealog.bioinfo.ui.filter.resources.FilterMessages;
  */
 public class BFilterTableModel extends AbstractTableModel {
 	private static final long serialVersionUID = 2366525557770286859L;
-	private int[]                    _columnIds;
+	private BFilterTableHeader[]     _columnIds;
 	private ArrayList<BFilterEntry>  _filters;
-
-	public static final int FILTER_NAME_HEADER = 0;
-	public static final int FILTER_DESCRIPTION_HEADER   = 1;
-	public static final int FILTER_RULE  = 2;
-
-	//NOTE: when modifying the following array, also modify initColumnSize() 
-	//and createStandardColHeaders() 
-	protected static final String[] HEADERS = 
-		{
-				FilterMessages.getString("BFilterTable.column.1"),
-				FilterMessages.getString("BFilterTable.column.2"),
-				FilterMessages.getString("BFilterTable.column.3")
-		};
 
 	public BFilterTableModel(){
 		_filters = new ArrayList<BFilterEntry>();
-		createStandardColHeaders();
+		_columnIds = new BFilterTableHeader[]{
+        BFilterTableHeader.FILTER_NAME_HEADER,
+        BFilterTableHeader.FILTER_DESCRIPTION_HEADER,
+        BFilterTableHeader.FILTER_RULE
+        };
 	}
 
-	public void addFilter(BFilterEntry filter){
+  public BFilterTableModel(BFilterTableHeader[] columnModel){
+    _filters = new ArrayList<BFilterEntry>();
+    _columnIds = columnModel;
+  }
+
+  public void addFilter(BFilterEntry filter){
 		_filters.add(filter);
 		this.fireTableDataChanged();
 	}
@@ -61,23 +56,38 @@ public class BFilterTableModel extends AbstractTableModel {
 		this.fireTableDataChanged();
 	}
 
-	private void createStandardColHeaders(){
-		_columnIds = new int[HEADERS.length];
-		_columnIds[0] = FILTER_NAME_HEADER;
-		_columnIds[1] = FILTER_DESCRIPTION_HEADER;
-		_columnIds[2] = FILTER_RULE;
-	}
 	public String getColumnName(int column){
-		return HEADERS[_columnIds[column]];
+		return _columnIds[column].getLabel();
 	}
 
+	public BFilterEntry getEntry(int row){
+	  return _filters.get(row);
+	}
 	public int getColumnCount() { 
 		return _columnIds.length; 
 	}
 	public int getRowCount() { 
 		return _filters.size();
 	}
+	@Override
+  public Class<?> getColumnClass(int column) {
+	  return _columnIds[column].getClazz();
+  }
 
+  @Override
+  public boolean isCellEditable(int row, int column) {
+    return _columnIds[column].getClazz()==Boolean.class;
+  }
+  
+  @Override
+  public void setValueAt(Object aValue, int row, int column) {
+    if (_columnIds[column].getClazz()==Boolean.class) {
+      BFilterEntry entry = _filters.get(row);
+      entry.setSelected(!_filters.get(row).isSelected());
+      fireTableChanged(new BFilterTableModelEvent(this, row, column, BFilterTableModelEvent.TYPE.TYPE_FILTER_CHECKED));
+    }
+  }
+  
 	public Object getValueAt(int row, int col) {
 		BFilterEntry entry;
 		BFilter      filter;
@@ -97,6 +107,8 @@ public class BFilterTableModel extends AbstractTableModel {
 		case FILTER_RULE:
 			val = filter.getHtmlString();
 			break;
+		case FILTER_CHECK:
+		  val = entry.isSelected();
 		}
 		return val;
 	}

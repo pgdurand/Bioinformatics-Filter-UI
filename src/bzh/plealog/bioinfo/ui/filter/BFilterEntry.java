@@ -27,7 +27,8 @@ import bzh.plealog.bioinfo.api.filter.BFilter;
 public class BFilterEntry{
   private String  fileName;
   private BFilter filter;
-
+  private boolean selected;
+  
   public BFilterEntry(){}
 
   public BFilterEntry(String file, BFilter filter){
@@ -59,6 +60,14 @@ public class BFilterEntry{
    */
   public void setFilter(BFilter filter) {
     this.filter = filter;
+  }
+
+  public boolean isSelected() {
+    return selected;
+  }
+
+  public void setSelected(boolean selected) {
+    this.selected = selected;
   }
 
 }

@@ -26,7 +26,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
@@ -34,7 +33,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -45,10 +48,15 @@ import javax.swing.event.EventListenerList;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
+
+import com.plealog.genericapp.api.EZEnvironment;
+import com.plealog.genericapp.api.file.EZFileManager;
+import com.plealog.genericapp.api.file.EZFileUtils;
 
 import bzh.plealog.bioinfo.api.filter.BDataAccessors;
 import bzh.plealog.bioinfo.api.filter.BFilter;
@@ -57,10 +65,6 @@ import bzh.plealog.bioinfo.io.filter.FilterSerializer;
 import bzh.plealog.bioinfo.io.filter.FilterSerializerException;
 import bzh.plealog.bioinfo.ui.filter.resources.FilterMessages;
 import bzh.plealog.bioinfo.ui.modules.filter.FilterSystemUI;
-
-import com.plealog.genericapp.api.EZEnvironment;
-import com.plealog.genericapp.api.file.EZFileManager;
-import com.plealog.genericapp.api.file.EZFileUtils;
 
 /**
  * This class handles an GUI that aims at managing BFilters. These are displayed
@@ -84,11 +88,44 @@ public class BFilterTable extends JPanel {
   private JLabel            _filterName;
   private RulesTableCellRenderer _rulesRenderer;
 
+  /**
+   * Constructor.
+   * 
+   * Do not add this BFilterTable (which is a JPanel) into a JScrollPane: it 
+   * already handles that. 
+   * 
+   * The BFilterTableModel used by this component is retrieved from 
+   * FilterSystemUI.getFilterCentralRepository(). So, if you need to create
+   * this component with a particular BFilterTableModel instance: (1) set
+   * that BFilterTableModel instance using FilterSystemUI.setFilterCentralRepository(),
+   * (2) call this constructor. This design was chosen since the use of BFilterTable
+   * is intended to be unique within an application; this is the reason why 
+   * BFilterTableModel is closely associated to the FilterCentralRepository: it is used
+   * as a Filter Manager system.
+   */
   public BFilterTable(BDataAccessors fModel){
     this(fModel, true, true, true);
   }
 
+  /**
+   * Constructor.
+   * 
+   * Please, read the documentation of the default constructor.
+   * 
+   * @param fModel the data model describing the filters
+   * @param showControls figure out whether or not BFilterTable has to display
+   * BFilter controls: New, Edit, Delete, etc.
+   * @param showIOControls figure out whether or not BFilterTable has to display
+   * BFilter IO controls: Import/Export.
+   * @param allowMultipleSelection figure out whether or not BFilterTable enables
+   * multiple selections in the BFilter table
+   */
   public BFilterTable(BDataAccessors fModel, boolean showControls, boolean showIOControls, boolean allowMultipleSelection){
+    this(fModel, showControls, showIOControls, allowMultipleSelection, true);
+  }
+  
+  public BFilterTable(BDataAccessors fModel, boolean showControls, boolean showIOControls, boolean allowMultipleSelection,
+      boolean showFilterName){
     JPanel      btnPanel, ctrlPnl;
     JScrollPane scroll;
 
@@ -106,20 +143,16 @@ public class BFilterTable extends JPanel {
     _table.getSelectionModel().addListSelectionListener(new MySelectionListener());
     scroll = new JScrollPane(_table);
 
-    _newBtn = new JButton(FilterMessages.getString("BFilterTable.ui.newBtn"));
-    _newBtn.addActionListener(new NewActionListener());
-    _copyBtn = new JButton(FilterMessages.getString("BFilterTable.ui.copyBtn"));
-    _copyBtn.addActionListener(new CopyActionListener());
-    _editBtn = new JButton(FilterMessages.getString("BFilterTable.ui.editBtn"));
-    _editBtn.addActionListener(new EditActionListener());
-    _deleteBtn = new JButton(FilterMessages.getString("BFilterTable.ui.deleteBtn"));
-    _deleteBtn.addActionListener(new DeleteActionListener());
-    _importBtn = new JButton(FilterMessages.getString("BFilterTable.ui.importBtn"));
-    _importBtn.addActionListener(new ImportActionListener());
-    _exportBtn = new JButton(FilterMessages.getString("BFilterTable.ui.exportBtn"));
-    _exportBtn.addActionListener(new ExportActionListener());
+    _newBtn = new JButton(getNewAction());
+    _copyBtn = new JButton(getCopyAction());
+    _editBtn = new JButton(getEditAction());
+    _deleteBtn = new JButton(getDeleteAction());
+    _importBtn = new JButton(getImportAction());
+    _exportBtn = new JButton(getExportAction());
 
-    _filterName = new JLabel("-");
+    if (showFilterName){
+      _filterName = new JLabel("-");
+    }
     this.setLayout(new BorderLayout());
     this.add(scroll, BorderLayout.CENTER);
     ctrlPnl = new JPanel(new BorderLayout());
@@ -136,7 +169,9 @@ public class BFilterTable extends JPanel {
       }
       ctrlPnl.add(btnPanel, BorderLayout.SOUTH);
     }
-    ctrlPnl.add(_filterName, BorderLayout.EAST);
+    if (showFilterName){
+      ctrlPnl.add(_filterName, BorderLayout.EAST);
+    }
     ctrlPnl.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 10));
     this.add(ctrlPnl, BorderLayout.SOUTH);
     this.addComponentListener(new TableComponentAdapter());
@@ -146,6 +181,84 @@ public class BFilterTable extends JPanel {
     }
     this.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
   }
+  
+  public Action getNewAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("doc_add.png");
+    if (icon != null) {
+      act = new NewAction("", icon);
+    } else {
+      act = new NewAction(FilterMessages.getString("BFilterTable.ui.newBtn"));
+    }
+    return act;
+  }
+  public Action getCopyAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("doc_copy.png");
+    if (icon != null) {
+      act = new CopyAction("", icon);
+    } else {
+      act = new CopyAction(FilterMessages.getString("BFilterTable.ui.copyBtn"));
+    }
+    return act;
+  }
+
+  public Action getEditAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("doc_edit.png");
+    if (icon != null) {
+      act = new EditAction("", icon);
+    } else {
+      act = new EditAction(FilterMessages.getString("BFilterTable.ui.editBtn"));
+    }
+    return act;
+  }
+
+  public Action getDeleteAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("doc_delete.png");
+    if (icon != null) {
+      act = new DeleteAction("", icon);
+    } else {
+      act = new DeleteAction(FilterMessages.getString("BFilterTable.ui.deleteBtn"));
+    }
+    return act;
+  }
+
+  public Action getImportAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("db_import.png");
+    if (icon != null) {
+      act = new ImportAction("", icon);
+    } else {
+      act = new ImportAction(FilterMessages.getString("BFilterTable.ui.importBtn"));
+    }
+    return act;
+  }
+
+  public Action getExportAction(){
+    AbstractAction act;
+    ImageIcon icon;
+    
+    icon = EZEnvironment.getImageIcon("db_export.png");
+    if (icon != null) {
+      act = new ExportAction("", icon);
+    } else {
+      act = new ExportAction(FilterMessages.getString("BFilterTable.ui.exportBtn"));
+    }
+    return act;
+  }
+
   public void setParent(Component parent){
     _parent = parent;
   }
@@ -154,6 +267,10 @@ public class BFilterTable extends JPanel {
     _table.getSelectionModel().addListSelectionListener(listener);
   }
 
+  public void addTableModelListener(TableModelListener listener){
+    _table.getModel().addTableModelListener(listener);
+  }
+  
   private class MySelectionListener implements ListSelectionListener{
     public void valueChanged(ListSelectionEvent e){
       if (e.getValueIsAdjusting())
@@ -168,7 +285,7 @@ public class BFilterTable extends JPanel {
         _editBtn.setEnabled(false);
         _deleteBtn.setEnabled(false);
         _exportBtn.setEnabled(false);
-        _filterName.setText("-");
+        if (_filterName!=null) _filterName.setText("-");
         return;
       }
       rows = _table.getSelectedRows();
@@ -181,10 +298,10 @@ public class BFilterTable extends JPanel {
         BFilterTableModel dModel = (BFilterTableModel) _table.getModel();
         BFilterEntry entry = (BFilterEntry) dModel.getValueAt(rows[0], -1);
         String fName = EZFileUtils.getFileName(new File(entry.getFileName()));
-        _filterName.setText(fName);
+        if (_filterName!=null) _filterName.setText(fName);
       }
       else{
-        _filterName.setText("-");
+        if (_filterName!=null) _filterName.setText("-");
       }
     }
   }
@@ -363,6 +480,20 @@ public class BFilterTable extends JPanel {
   }
 
   /**
+   * Return the number of filters contained in this table.
+   */
+  public int filters(){
+    return _table.getRowCount();
+  }
+  
+  /**
+   * Returns a particular filter given its row index in the table.
+   */
+  public BFilterEntry getFilter(int rowIndex){
+    return ((BFilterTableModel) _table.getModel()).getEntry(rowIndex);
+  }
+  
+  /**
    * Returns a list of all Filters available. The returned list contains
    * String objects, each of them being the alias name of a Filter.
    */
@@ -383,7 +514,17 @@ public class BFilterTable extends JPanel {
     return aliases;
   }
 
-  private class ImportActionListener implements ActionListener{
+  private class ImportAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2945227702127884665L;
+    public ImportAction(String name){
+      super(name);
+    }
+    public ImportAction(String name, Icon icon){
+        super(name, icon);
+    }
     private File chooseFile(){
       return EZFileManager.chooseFileForOpenAction(
           BFilterTable.this,
@@ -416,7 +557,17 @@ public class BFilterTable extends JPanel {
       _table.scrollRectToVisible(_table.getCellRect(sel, 0, true));
     }
   }
-  private class ExportActionListener implements ActionListener{
+  private class ExportAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 3279431705023175290L;
+    public ExportAction(String name){
+      super(name);
+    }
+    public ExportAction(String name, Icon icon){
+        super(name, icon);
+    }
     private File chooseFile(){
       return EZFileManager.chooseFileForSaveAction(BFilterTable.this, "Save filter", null);
       /*DDFileExt fe = DDFileTypes.getFileForSaveAction(
@@ -454,7 +605,17 @@ public class BFilterTable extends JPanel {
     }
   }
 
-  private class NewActionListener implements ActionListener{
+  private class NewAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -8915123792765732329L;
+    public NewAction(String name){
+      super(name);
+    }
+    public NewAction(String name, Icon icon){
+        super(name, icon);
+    }
     public void actionPerformed(ActionEvent e){
       BFilterEntry fEntry;
       fEntry = addFilterInTable(editFilter(null));
@@ -468,7 +629,17 @@ public class BFilterTable extends JPanel {
     }
   }
 
-  private class CopyActionListener implements ActionListener{
+  private class CopyAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 2136051574972040242L;
+    public CopyAction(String name){
+      super(name);
+    }
+    public CopyAction(String name, Icon icon){
+        super(name, icon);
+    }
     public void actionPerformed(ActionEvent e){
       BFilter        curFilter, newFilter;
       BFilterEntry[] fEntries;
@@ -491,7 +662,17 @@ public class BFilterTable extends JPanel {
     }
   }
 
-  private class EditActionListener implements ActionListener{
+  private class EditAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 6117320628766523729L;
+    public EditAction(String name){
+      super(name);
+    }
+    public EditAction(String name, Icon icon){
+        super(name, icon);
+    }
     public void actionPerformed(ActionEvent e){
       BFilter        curFilter, newFilter;
       BFilterEntry[] fEntries;
@@ -515,7 +696,17 @@ public class BFilterTable extends JPanel {
     }
   }
 
-  private class DeleteActionListener implements ActionListener{
+  private class DeleteAction extends AbstractAction{
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -3803977236738633873L;
+    public DeleteAction(String name){
+      super(name);
+    }
+    public DeleteAction(String name, Icon icon){
+        super(name, icon);
+    }
     public void actionPerformed(ActionEvent e){
       BFilterTableModel dModel;
       BFilterEntry[]          fEntries;
@@ -560,17 +751,31 @@ public class BFilterTable extends JPanel {
     FontMetrics      fm;
     TableColumnModel tcm;
     TableColumn      tc, lastTc=null;
-    String           header;
+    String           header, largestHeader;
     int              i, size, tot, val;
 
     fm = _table.getFontMetrics(_table.getFont());
     tcm = _table.getColumnModel();
     size = tcm.getColumnCount();
     tot=0;
+    
+    // largest header column is Description...
+    largestHeader = BFilterTableHeader.FILTER_DESCRIPTION_HEADER.getLabel();
     for (i=0;i<size;i++){
       tc = tcm.getColumn(i);
       header = tc.getHeaderValue().toString();
-      if (i<2){
+      // ... however, if the table model contains the Rule column, then
+      // this is the largest column
+      if ( header.equals(BFilterTableHeader.FILTER_RULE.getLabel()) ){
+        largestHeader = BFilterTableHeader.FILTER_RULE.getLabel();
+        break;
+      }
+    }
+    
+    for (i=0;i<size;i++){
+      tc = tcm.getColumn(i);
+      header = tc.getHeaderValue().toString();
+      if ( ! header.equals(largestHeader) ){
         val = 4*fm.stringWidth(header);
         tc.setPreferredWidth(val);
         /* Following can be used to lock the width of a column

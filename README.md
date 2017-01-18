@@ -1,6 +1,6 @@
 #Bioinformatics Filtering Engine - User Interface API
 
-[![License](https://img.shields.io/badge/license-Affero%20GPL%203.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.txt)
+[![License AGPL](https://img.shields.io/badge/license-Affero%20GPL%203.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.txt)
 
 ##Introduction
 
@@ -16,8 +16,10 @@ Use a [Java Virtual Machine](http://www.oracle.com/technetwork/java/javase/downl
 
 Since this package is a library, its primary purpose targets a use within other softwares. You can see how to use the library by having a look at:
 
-* "test" package in this project: it contains sample source code; 
+* [test](https://github.com/pgdurand/Bioinformatics-Filter-UI/tree/master/src/test) package in this project: it contains sample source code; 
 * [Blast Filter Tool](https://github.com/pgdurand/BLAST-Filter-Tool) source code: a full example of a running application relying on the BLAST Data Filtering UI
+
+More on the [Wiki](https://github.com/pgdurand/Bioinformatics-Filter-UI/wiki) of this project.
 
 ##License and dependencies
 

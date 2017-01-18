@@ -106,7 +106,7 @@
     Overview="${src}/overview.html" 
     Private="false" 
     Splitindex="true" 
-    Windowtitle="Plealog Bioinformatics Filter UI API" 
+    Windowtitle="Plealog Bioinformatics Filter UI API - ${pbc.LibVersion}" 
     author="true" 
     classpathref="class.path" 
     destdir="${Ddoc.api}" 
@@ -114,11 +114,15 @@
     sourcepath="${src}" 
     version="true">
     <bottom>
-      <![CDATA[(c) Patrick G. Durand - 2004-2016]]>
+      <![CDATA[(c) <a href="https://www.linkedin.com/in/pgdurand56/">Patrick G. Durand</a> - 2004-2017]]>
     </bottom>
     <header>
-      <![CDATA[Plealog Bioinformatics Filter UI API]]></header>
-    <link href="https://docs.oracle.com/javase/6/docs/api/"/>
+      <![CDATA[Plealog Bioinformatics Filter UI API - ${pbc.LibVersion}]]></header>
+    <link href="https://docs.oracle.com/javase/7/docs/api/"/>
+    <link href="https://pgdurand.github.io/Bioinformatics-Core-API/api/"/>
+    <link href="https://pgdurand.github.io/Bioinformatics-UI-API/api/"/>
+    <link href="https://pgdurand.github.io/Bioinformatics-Filter-Engine/api/"/>
+
     <!-- arg value="-Xdoclint:reference"/ -->
   </javadoc>
 </target>

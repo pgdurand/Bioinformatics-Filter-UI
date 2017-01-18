@@ -91,7 +91,7 @@ public class FilterManagerUI {
 		return props;
 	}
 	/**
-	 * Launch the Filter Editor UI.
+	 * Launch the Filter Editor UI. To be used only for standalone applications.
 	 */
 	public static void startUI(String[] args){
 		Properties props = getVersionProperties();
@@ -110,7 +110,7 @@ public class FilterManagerUI {
 		//prepare Filter Manager environment
 		FilterSystemUI.initializeSystem();
 
-		FilterSystemUI.setFilterCentralRepositoryPath(EZFileUtils.terminatePath(prepareEnvironment(".")));
+		FilterSystemUI.setFilterCentralRepositoryPath(EZFileUtils.terminatePath(prepareEnvironment(null)));
 
 		//Add a listener to application startup cycle (see below)
 		EZEnvironment.setUIStarterListener(new MyStarterListener());
@@ -128,15 +128,19 @@ public class FilterManagerUI {
 	 * Prepare the user environment. This method will create the path used to automatically manager
 	 * the filters.
 	 * 
-	 * @param appHomePath the absolute path to the application installation directory
+	 * @param appHomePath the absolute path to the application user storage directory
 	 * 
 	 * @return the absolute path to the user filter directory
 	 */
-	private static String prepareEnvironment(String appHomePath){
+	public static String prepareEnvironment(String appHomePath){
 		String path, msg;
 		File   f;
 		
-		path = EZFileUtils.terminatePath(System.getProperty("user.home"))+FILTER_FOLDER;
+		if (appHomePath==null)
+		  path = EZFileUtils.terminatePath(System.getProperty("user.home"))+FILTER_FOLDER;
+		else
+		  path = EZFileUtils.terminatePath(appHomePath)+DEVEL_FILTER_SAMPLE_DIR;
+		
 		f = new File(path);
 		
 		if(f.exists()==false){
@@ -146,10 +150,10 @@ public class FilterManagerUI {
 				System.exit(1);
 			}
 			else{
-				String sourceSample = EZFileUtils.terminatePath(appHomePath)+DEVEL_FILTER_SAMPLE_DIR+File.separator+FILTER_SAMPLE;
+			  //here, we suppose that we are in devel mode: 'filter' directory exists in the project
+				String sourceSample = EZFileUtils.terminatePath(".")+DEVEL_FILTER_SAMPLE_DIR+File.separator+FILTER_SAMPLE;
 				f = new File(sourceSample);
 				if (f.exists()){
-					//here, we suppose that we are in devel mode: 'filter' directory exists in the project
 					try (FileInputStream fis = new FileInputStream(f);){
 						ZipUtil.extractAll(fis, path, FILTER_FILE_EXT);
 					}
@@ -234,7 +238,7 @@ public class FilterManagerUI {
 	/**
 	 * Load filters from the filter storage and populates the filter table.
 	 */
-	private static void uploadExistingFilters(BFilterTable fTable, String filterStoragePath){
+	public static void uploadExistingFilters(BFilterTable fTable, String filterStoragePath){
 		FilterSerializer  serializer;
 		BFilterEntry         fEntry;
 		BFilter              filter;
